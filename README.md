@@ -1,6 +1,6 @@
 # ManticoreScanner
 
-CLI tool that scans npm dependencies for security risks using the AegisEngine behavioral analysis backend.
+CLI tool that scans npm dependencies for security risks using the ManticoreEngine behavioral analysis backend.
 
 ## Install
 
@@ -69,12 +69,12 @@ manticore scan --api-key YOUR_API_KEY --vcs-comment
 
 ## Environment variables
 
-| Variable | Description |
-|---|---|
-| `MANTICORE_API_KEY` | API key (alternative to `--api-key`) |
-| `MANTICORE_API_URL` | API base URL (default: `https://api.aegisengine.com`) |
-| `MANTICORE_TIMEOUT` | Polling timeout in seconds (default: `300`) |
-| `MANTICORE_FORMAT` | Output format: `table`, `json`, `sarif` |
+| Variable | Description                                         |
+|---|-----------------------------------------------------|
+| `MANTICORE_API_KEY` | API key (alternative to `--api-key`)                |
+| `MANTICORE_API_URL` | API base URL (default: `https://api.manticore.com`) |
+| `MANTICORE_TIMEOUT` | Polling timeout in seconds (default: `300`)         |
+| `MANTICORE_FORMAT` | Output format: `table`, `json`, `sarif`             |
 
 ## GitHub Actions example
 
