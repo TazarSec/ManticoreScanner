@@ -1,0 +1,34 @@
+{
+  "name": "test-project",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "packages": {
+    "": {
+      "name": "test-project",
+      "version": "1.0.0",
+      "dependencies": {
+        "lodash": "^4.17.21",
+        "express": "^4.18.2"
+      },
+      "devDependencies": {
+        "jest": "^29.0.0"
+      }
+    },
+    "node_modules/lodash": {
+      "version": "4.17.21"
+    },
+    "node_modules/express": {
+      "version": "4.18.2"
+    },
+    "node_modules/express/node_modules/body-parser": {
+      "version": "1.20.1"
+    },
+    "node_modules/@scope/util": {
+      "version": "1.0.0"
+    },
+    "node_modules/jest": {
+      "version": "29.7.0",
+      "dev": true
+    }
+  }
+}

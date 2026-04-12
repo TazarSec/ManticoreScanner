@@ -1,0 +1,238 @@
+openapi: 3.0.3
+info:
+  title: AegisEngine Scan API
+  description: Package security scanning API. Submit packages for behavioral analysis or look up existing scan results.
+  version: 1.0.0
+
+servers:
+  - url: /v1
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /scan:
+    post:
+      summary: Scan or look up packages
+      description: |
+        Submit a single package, a hash, or a batch of packages for scanning.
+        - If a scan result exists, returns it immediately.
+        - If a scan is in progress, returns status `in_progress`.
+        - If no scan exists, queues a new scan and returns status `queued`.
+      operationId: scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+            examples:
+              single_package:
+                summary: Single package scan
+                value:
+                  package: lodash
+                  version: 4.17.21
+              single_with_ecosystem:
+                summary: Package with explicit ecosystem
+                value:
+                  package: "@angular/core"
+                  version: 15.0.0
+                  ecosystem: npm
+              hash_lookup:
+                summary: Look up by artifact hash
+                value:
+                  hash: "sha256:a1b2c3d4e5f6..."
+              batch:
+                summary: Batch scan (up to 50)
+                value:
+                  packages:
+                    - package: lodash
+                      version: 4.17.21
+                    - package: express
+                      version: 4.18.2
+                    - hash: "sha256:a1b2c3..."
+      responses:
+        '200':
+          description: All results are completed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SingleResponse'
+                  - $ref: '#/components/schemas/BatchResponse'
+        '202':
+          description: One or more scans are queued or in progress
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SingleResponse'
+                  - $ref: '#/components/schemas/BatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Missing or invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Hash not found (single request only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      description: API key passed as Bearer token. The key is SHA256-hashed server-side for lookup.
+
+  schemas:
+    ScanRequest:
+      type: object
+      description: Either provide flat fields for a single scan, or `packages` for a batch.
+      properties:
+        package:
+          type: string
+          description: Package name
+          example: lodash
+        version:
+          type: string
+          description: Package version
+          example: 4.17.21
+        ecosystem:
+          type: string
+          description: Package ecosystem
+          default: npm
+          enum: [npm, pypi, rubygems, crates, maven, go]
+        hash:
+          type: string
+          description: "Artifact hash in algorithm:hash format"
+          example: "sha256:a1b2c3..."
+        packages:
+          type: array
+          description: Batch of packages to scan (max 50)
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/ScanRequestItem'
+
+    ScanRequestItem:
+      type: object
+      properties:
+        package:
+          type: string
+        version:
+          type: string
+        ecosystem:
+          type: string
+          default: npm
+        hash:
+          type: string
+
+    SingleResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        profile:
+          $ref: '#/components/schemas/Profile'
+
+    BatchResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchResultItem'
+
+    BatchResultItem:
+      type: object
+      required: [status]
+      properties:
+        package:
+          type: string
+        version:
+          type: string
+        ecosystem:
+          type: string
+        hash:
+          type: string
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        profile:
+          $ref: '#/components/schemas/Profile'
+        error:
+          type: string
+          description: Error message if this item failed
+
+    ScanStatus:
+      type: string
+      enum: [completed, in_progress, queued]
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        ecosystem:
+          type: string
+        package_name:
+          type: string
+        version:
+          type: string
+        suspicion_score:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 100
+        suspicion_reasons:
+          type: array
+          items:
+            $ref: '#/components/schemas/SuspicionReason'
+        has_unknown_network:
+          type: boolean
+        has_sensitive_file_access:
+          type: boolean
+        has_unexpected_processes:
+          type: boolean
+        scanned_at:
+          type: string
+          format: date-time
+
+    SuspicionReason:
+      type: object
+      properties:
+        type:
+          type: string
+          description: "Reason type (e.g. new_network, new_dns, new_file, new_process)"
+        detail:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        phase:
+          type: string
+          enum: [install, require]
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string

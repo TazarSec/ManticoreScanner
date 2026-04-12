@@ -1,0 +1,128 @@
+package npm
+
+import (
+	"os"
+	"sort"
+	"testing"
+
+	"github.com/etsubu/manticore-scanner/pkg/parser"
+)
+
+func TestPackageLockV3_WithDev(t *testing.T) {
+	f, err := os.Open("../../../testdata/package-lock-v3.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	p := &PackageLockParser{}
+	pkgs, err := p.Parse(f, parser.ParseOptions{IncludeDev: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names := packageNames(pkgs)
+	sort.Strings(names)
+
+	expected := []string{"@scope/util", "body-parser", "express", "jest", "lodash"}
+	if len(names) != len(expected) {
+		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
+	}
+	for i, name := range expected {
+		if names[i] != name {
+			t.Errorf("expected %s at position %d, got %s", name, i, names[i])
+		}
+	}
+}
+
+func TestPackageLockV3_WithoutDev(t *testing.T) {
+	f, err := os.Open("../../../testdata/package-lock-v3.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	p := &PackageLockParser{}
+	pkgs, err := p.Parse(f, parser.ParseOptions{IncludeDev: false})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names := packageNames(pkgs)
+	sort.Strings(names)
+
+	expected := []string{"@scope/util", "body-parser", "express", "lodash"}
+	if len(names) != len(expected) {
+		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
+	}
+	for i, name := range expected {
+		if names[i] != name {
+			t.Errorf("expected %s at position %d, got %s", name, i, names[i])
+		}
+	}
+}
+
+func TestPackageLockV1_WithDev(t *testing.T) {
+	f, err := os.Open("../../../testdata/package-lock-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	p := &PackageLockParser{}
+	pkgs, err := p.Parse(f, parser.ParseOptions{IncludeDev: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names := packageNames(pkgs)
+	sort.Strings(names)
+
+	expected := []string{"body-parser", "express", "jest", "lodash"}
+	if len(names) != len(expected) {
+		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
+	}
+}
+
+func TestPackageLockV1_WithoutDev(t *testing.T) {
+	f, err := os.Open("../../../testdata/package-lock-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	p := &PackageLockParser{}
+	pkgs, err := p.Parse(f, parser.ParseOptions{IncludeDev: false})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names := packageNames(pkgs)
+	sort.Strings(names)
+
+	expected := []string{"body-parser", "express", "lodash"}
+	if len(names) != len(expected) {
+		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
+	}
+}
+
+func TestExtractPackageName(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"node_modules/lodash", "lodash"},
+		{"node_modules/@scope/name", "@scope/name"},
+		{"node_modules/a/node_modules/@scope/name", "@scope/name"},
+		{"node_modules/a/node_modules/b", "b"},
+		{"", ""},
+		{"something/else", ""},
+	}
+
+	for _, tt := range tests {
+		result := extractPackageName(tt.input)
+		if result != tt.expected {
+			t.Errorf("extractPackageName(%q) = %q, want %q", tt.input, result, tt.expected)
+		}
+	}
+}
