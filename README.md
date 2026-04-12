@@ -5,13 +5,13 @@ CLI tool that scans npm dependencies for security risks using the ManticoreEngin
 ## Install
 
 ```bash
-go install github.com/etsubu/manticore-scanner/cmd/manticore@latest
+go install github.com/KeisaritGroup/ManticoreScanner/cmd/manticore@latest
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/etsubu/manticore-scanner.git
+git clone https://github.com/KeisaritGroup/ManticoreScanner.git
 cd manticore-scanner
 go build -o manticore ./cmd/manticore
 ```
@@ -92,6 +92,6 @@ manticore scan --api-key YOUR_API_KEY --vcs-comment
 docker run --rm \
   -v $(pwd):/workspace \
   -w /workspace \
-  ghcr.io/etsubu/manticore-scanner:latest \
+  ghcr.io/KeisaritGroup/manticore-scanner:latest \
   scan --api-key YOUR_API_KEY
 ```

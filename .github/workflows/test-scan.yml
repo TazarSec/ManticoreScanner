@@ -1,0 +1,29 @@
+name: Test Scan
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build manticore
+        run: go build -o manticore ./cmd/manticore
+
+      - name: Scan testdata/package.json
+        env:
+          MANTICORE_API_KEY: ${{ secrets.MANTICORE_API_KEY }}
+          MANTICORE_API_URL: https://n9kxutlgbg.execute-api.eu-north-1.amazonaws.com
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./manticore scan --file testdata/package.json --vcs-comment
