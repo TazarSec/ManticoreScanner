@@ -4,9 +4,22 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/etsubu/manticore-scanner/pkg/parser"
 )
+
+// cleanVersion strips semver range prefixes (^, ~, >=, <=, >, <, =)
+// that appear in package.json but are not actual version numbers.
+func cleanVersion(v string) string {
+	v = strings.TrimSpace(v)
+	for _, prefix := range []string{">=", "<=", "^", "~", ">", "<", "="} {
+		if strings.HasPrefix(v, prefix) {
+			return strings.TrimSpace(strings.TrimPrefix(v, prefix))
+		}
+	}
+	return v
+}
 
 // packageJSON represents the relevant fields of a package.json file.
 type packageJSON struct {
@@ -29,6 +42,7 @@ func (p *PackageJSONParser) Parse(r io.Reader, opts parser.ParseOptions) ([]pars
 	var packages []parser.Package
 
 	for name, version := range pkg.Dependencies {
+		version = cleanVersion(version)
 		key := name + "@" + version
 		if seen[key] {
 			continue
@@ -43,6 +57,7 @@ func (p *PackageJSONParser) Parse(r io.Reader, opts parser.ParseOptions) ([]pars
 
 	if opts.IncludeDev {
 		for name, version := range pkg.DevDependencies {
+			version = cleanVersion(version)
 			key := name + "@" + version
 			if seen[key] {
 				continue
