@@ -13,6 +13,8 @@ import (
 	"github.com/etsubu/manticore-scanner/pkg/vcs"
 )
 
+var _ vcs.Provider = (*Provider)(nil)
+
 const commentMarker = "<!-- manticore-scanner-results -->"
 
 // Provider implements the vcs.Provider interface for GitHub.
@@ -37,61 +39,6 @@ func (p *Provider) Detect() (*vcs.Context, error) {
 func (p *Provider) PostResults(ctx context.Context, vcsCtx *vcs.Context, results []api.BatchResultItem) error {
 	body := buildCommentBody(results)
 	return p.postOrUpdateComment(ctx, vcsCtx, body)
-}
-
-func buildCommentBody(results []api.BatchResultItem) string {
-	var sb strings.Builder
-	sb.WriteString(commentMarker + "\n")
-	sb.WriteString("## Manticore Security Scan Results\n\n")
-
-	// Filter to suspicious packages only.
-	var suspicious []api.BatchResultItem
-	for _, r := range results {
-		if r.Profile != nil && r.Profile.SuspicionScore > 0 {
-			suspicious = append(suspicious, r)
-		}
-	}
-
-	if len(suspicious) == 0 {
-		sb.WriteString("No suspicious packages detected.\n")
-		return sb.String()
-	}
-
-	sb.WriteString(fmt.Sprintf("Found **%d** suspicious package(s):\n\n", len(suspicious)))
-	sb.WriteString("| Package | Version | Score | Flags | Top Reason |\n")
-	sb.WriteString("|---------|---------|-------|-------|------------|\n")
-
-	for _, r := range suspicious {
-		flags := buildFlags(r.Profile)
-		reason := "-"
-		if len(r.Profile.SuspicionReasons) > 0 {
-			reason = r.Profile.SuspicionReasons[0].Detail
-		}
-		sb.WriteString(fmt.Sprintf("| %s | %s | %.1f | %s | %s |\n",
-			r.Package, r.Version,
-			r.Profile.SuspicionScore,
-			flags, reason,
-		))
-	}
-
-	return sb.String()
-}
-
-func buildFlags(p *api.Profile) string {
-	var flags []string
-	if p.HasUnknownNetwork {
-		flags = append(flags, "NET")
-	}
-	if p.HasSensitiveFileAcces {
-		flags = append(flags, "FILE")
-	}
-	if p.HasUnexpectedProcess {
-		flags = append(flags, "PROC")
-	}
-	if len(flags) == 0 {
-		return "-"
-	}
-	return strings.Join(flags, ", ")
 }
 
 type ghComment struct {
