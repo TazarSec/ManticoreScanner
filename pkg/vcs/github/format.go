@@ -281,7 +281,7 @@ func writePackageSection(sb *strings.Builder, r api.BatchResultItem) {
 		sb.WriteString(fmt.Sprintf("**Behavior:** %s\n\n", flags))
 	}
 
-	sb.WriteString("\n</details>\n")
+	sb.WriteString("</details>\n\n")
 }
 
 func buildCommentBody(results []api.BatchResultItem) string {
