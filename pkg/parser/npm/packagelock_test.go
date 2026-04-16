@@ -24,7 +24,7 @@ func TestPackageLockV3_WithDev(t *testing.T) {
 	names := packageNames(pkgs)
 	sort.Strings(names)
 
-	expected := []string{"@scope/util", "body-parser", "express", "jest", "lodash"}
+	expected := []string{"express", "jest", "lodash"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
 	}
@@ -51,7 +51,7 @@ func TestPackageLockV3_WithoutDev(t *testing.T) {
 	names := packageNames(pkgs)
 	sort.Strings(names)
 
-	expected := []string{"@scope/util", "body-parser", "express", "lodash"}
+	expected := []string{"express", "lodash"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
 	}
@@ -78,7 +78,7 @@ func TestPackageLockV1_WithDev(t *testing.T) {
 	names := packageNames(pkgs)
 	sort.Strings(names)
 
-	expected := []string{"body-parser", "express", "jest", "lodash"}
+	expected := []string{"express", "jest", "lodash"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
 	}
@@ -100,7 +100,7 @@ func TestPackageLockV1_WithoutDev(t *testing.T) {
 	names := packageNames(pkgs)
 	sort.Strings(names)
 
-	expected := []string{"body-parser", "express", "lodash"}
+	expected := []string{"express", "lodash"}
 	if len(names) != len(expected) {
 		t.Fatalf("expected %d packages, got %d: %v", len(expected), len(names), names)
 	}

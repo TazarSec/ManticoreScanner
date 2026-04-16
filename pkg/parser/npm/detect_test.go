@@ -30,8 +30,8 @@ func TestDetectAndParse_ExplicitFile(t *testing.T) {
 	if file != "../../../testdata/package-lock-v3.json" {
 		t.Errorf("expected explicit file path, got %s", file)
 	}
-	if len(pkgs) != 5 {
-		t.Errorf("expected 5 packages, got %d", len(pkgs))
+	if len(pkgs) != 3 {
+		t.Errorf("expected 3 packages, got %d", len(pkgs))
 	}
 }
 

@@ -107,12 +107,12 @@ func runScan(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check fail threshold.
-	if cfg.FailOn != nil {
+	if cfg.FailOn != -1 {
 		for _, item := range result.Items {
-			if item.Profile != nil && item.Profile.SuspicionScore >= *cfg.FailOn {
+			if item.Profile != nil && item.Profile.SuspicionScore >= cfg.FailOn {
 				fmt.Fprintf(os.Stderr, "FAIL: %s@%s has suspicion score %.1f (threshold: %.1f)\n",
 					item.Package, item.Version,
-					item.Profile.SuspicionScore, *cfg.FailOn,
+					item.Profile.SuspicionScore, cfg.FailOn,
 				)
 				os.Exit(1)
 			}

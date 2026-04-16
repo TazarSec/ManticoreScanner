@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	defaultAPIURL  = "https://api.aegisengine.com"
-	defaultTimeout = 300
-	defaultFormat  = "table"
+	defaultAPIURL           = "https://api.aegisengine.com"
+	defaultTimeout          = 300
+	defaultFormat           = "table"
+	defaultFailureThreshold = 1
 )
 
 // CLIFlags holds the raw flags from the CLI.
@@ -37,6 +38,7 @@ func Resolve(flags CLIFlags) scanner.Config {
 		APIBaseURL: envOrDefault("MANTICORE_API_URL", defaultAPIURL),
 		TimeoutSec: envIntOrDefault("MANTICORE_TIMEOUT", defaultTimeout),
 		Format:     envOrDefault("MANTICORE_FORMAT", defaultFormat),
+		FailOn:     envFloatOrDefault("MANTICORE_FAILURE_TRESHOLD", defaultFailureThreshold),
 		InputPath:  ".",
 		Production: false,
 		PostToVCS:  false,
@@ -61,8 +63,7 @@ func Resolve(flags CLIFlags) scanner.Config {
 		cfg.OutputPath = flags.Output
 	}
 	if flags.FailOnSet {
-		v := flags.FailOn
-		cfg.FailOn = &v
+		cfg.FailOn = flags.FailOn
 	}
 	if flags.Timeout > 0 {
 		cfg.TimeoutSec = flags.Timeout
@@ -86,6 +87,15 @@ func Resolve(flags CLIFlags) scanner.Config {
 func envOrDefault(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return def
+}
+
+func envFloatOrDefault(key string, def float64) float64 {
+	if v := os.Getenv(key); v != "" {
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
 	}
 	return def
 }
