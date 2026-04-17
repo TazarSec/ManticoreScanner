@@ -1,0 +1,142 @@
+name: "Manticore Scanner"
+description: "Scan npm dependencies for security risks using the Manticore backend."
+author: "Manticore"
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  api-key:
+    description: "Manticore API key."
+    required: true
+  api-url:
+    description: "Manticore API base URL. Defaults to the CLI's built-in value."
+    required: false
+    default: ""
+  file:
+    description: "Path to package.json or package-lock.json. Auto-detected in the working directory if omitted."
+    required: false
+    default: ""
+  format:
+    description: "Output format: table, json, or sarif."
+    required: false
+    default: ""
+  output:
+    description: "Write results to this file instead of stdout."
+    required: false
+    default: ""
+  fail-on:
+    description: "Exit non-zero if any package has a suspicion score at or above this threshold."
+    required: false
+    default: ""
+  production:
+    description: "Skip devDependencies when set to 'true'."
+    required: false
+    default: "false"
+  vcs-comment:
+    description: "Post results as a PR comment when set to 'true'."
+    required: false
+    default: "false"
+  version:
+    description: "Release tag to install (e.g. v1.2.3). Defaults to the ref this action was invoked with."
+    required: false
+    default: ""
+  working-directory:
+    description: "Directory to run the scan from."
+    required: false
+    default: "."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install manticore
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+        ACTION_REF: ${{ github.action_ref }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        # Default to the repository that this action was resolved from.
+        repo="${ACTION_REPOSITORY:-}"
+        if [ -z "${repo}" ]; then
+          # Fallback for local checkout usage.
+          repo="${GITHUB_REPOSITORY}"
+        fi
+
+        version="${INPUT_VERSION}"
+        if [ -z "${version}" ]; then
+          version="${ACTION_REF:-}"
+        fi
+        if [ -z "${version}" ] || [ "${version}" = "main" ] || [ "${version}" = "master" ]; then
+          version=$(gh release view --repo "${repo}" --json tagName -q .tagName)
+        fi
+
+        os=$(uname -s | tr '[:upper:]' '[:lower:]')
+        case "${os}" in
+          linux|darwin) ;;
+          mingw*|msys*|cygwin*) os=windows ;;
+          *) echo "Unsupported OS: ${os}" >&2; exit 1 ;;
+        esac
+
+        arch=$(uname -m)
+        case "${arch}" in
+          x86_64|amd64) arch=amd64 ;;
+          aarch64|arm64) arch=arm64 ;;
+          *) echo "Unsupported arch: ${arch}" >&2; exit 1 ;;
+        esac
+
+        ext=""
+        if [ "${os}" = "windows" ]; then
+          ext=".exe"
+        fi
+
+        asset="manticore-${os}-${arch}${ext}"
+        install_dir="${RUNNER_TEMP}/manticore-${version}"
+        mkdir -p "${install_dir}"
+
+        echo "Downloading ${asset} from ${repo}@${version}"
+        gh release download "${version}" \
+          --repo "${repo}" \
+          --pattern "${asset}" \
+          --pattern "checksums.txt" \
+          --dir "${install_dir}" \
+          --clobber
+
+        (
+          cd "${install_dir}"
+          # Keep only the entry for our asset so sha256sum doesn't fail on
+          # missing files for other platforms.
+          grep "  ${asset}\$" checksums.txt > "${asset}.sha256"
+          sha256sum -c "${asset}.sha256"
+        )
+
+        chmod +x "${install_dir}/${asset}"
+        mv "${install_dir}/${asset}" "${install_dir}/manticore${ext}"
+        echo "${install_dir}" >> "${GITHUB_PATH}"
+
+    - name: Run manticore scan
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        MANTICORE_API_KEY: ${{ inputs.api-key }}
+        MANTICORE_API_URL: ${{ inputs.api-url }}
+        GITHUB_TOKEN: ${{ github.token }}
+        INPUT_FILE: ${{ inputs.file }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT: ${{ inputs.output }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_PRODUCTION: ${{ inputs.production }}
+        INPUT_VCS_COMMENT: ${{ inputs.vcs-comment }}
+      run: |
+        set -euo pipefail
+        args=(scan)
+        [ -n "${INPUT_FILE}" ]     && args+=(--file "${INPUT_FILE}")
+        [ -n "${INPUT_FORMAT}" ]   && args+=(--format "${INPUT_FORMAT}")
+        [ -n "${INPUT_OUTPUT}" ]   && args+=(--output "${INPUT_OUTPUT}")
+        [ -n "${INPUT_FAIL_ON}" ]  && args+=(--fail-on "${INPUT_FAIL_ON}")
+        [ "${INPUT_PRODUCTION}" = "true" ]  && args+=(--production)
+        [ "${INPUT_VCS_COMMENT}" = "true" ] && args+=(--vcs-comment)
+        exec manticore "${args[@]}"

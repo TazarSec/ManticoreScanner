@@ -76,15 +76,46 @@ manticore scan --api-key YOUR_API_KEY --vcs-comment
 | `MANTICORE_TIMEOUT` | Polling timeout in seconds (default: `300`)         |
 | `MANTICORE_FORMAT` | Output format: `table`, `json`, `sarif`             |
 
-## GitHub Actions example
+## GitHub Action
+
+Use the published action to install and run the scanner in a workflow. The action
+downloads the matching release binary for the runner platform, verifies its
+SHA-256 checksum, and invokes `manticore scan`.
 
 ```yaml
-- name: Scan dependencies
-  env:
-    MANTICORE_API_KEY: ${{ secrets.MANTICORE_API_KEY }}
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: manticore scan --fail-on 50 --vcs-comment
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: KeisaritGroup/ManticoreScanner@v1
+        with:
+          api-key: ${{ secrets.MANTICORE_API_KEY }}
+          fail-on: 50
+          vcs-comment: true
 ```
+
+Pin to an exact release (`@v1.2.3`) for reproducible builds, or `@v1` to track
+the latest release in the v1 line.
+
+### Action inputs
+
+| Input | Description |
+|---|---|
+| `api-key` | Manticore API key (required). |
+| `api-url` | Override the API base URL. |
+| `file` | Path to `package.json` / `package-lock.json`. Auto-detected if empty. |
+| `format` | Output format: `table`, `json`, `sarif`. |
+| `output` | Write results to this path instead of stdout. |
+| `fail-on` | Fail the job if any suspicion score is at or above this threshold. |
+| `production` | Set to `true` to skip devDependencies. |
+| `vcs-comment` | Set to `true` to post a PR comment with findings. |
+| `version` | Pin a specific release tag (defaults to the ref used to reference the action). |
+| `working-directory` | Directory to run the scan from. |
 
 ## Docker
 
