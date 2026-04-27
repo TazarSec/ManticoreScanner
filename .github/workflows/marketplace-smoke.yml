@@ -36,6 +36,7 @@ jobs:
           file: package.json
           fail-on: 100
           format: table
+          api-url: https://n9kxutlgbg.execute-api.eu-north-1.amazonaws.com
 
   scan-action-sarif:
     name: scan action -> SARIF upload
@@ -55,6 +56,7 @@ jobs:
           fail-on: 100
           format: sarif
           output: manticore.sarif
+          api-url: https://n9kxutlgbg.execute-api.eu-north-1.amazonaws.com
 
       - uses: github/codeql-action/upload-sarif@v3
         with:
@@ -74,11 +76,11 @@ jobs:
           version: ${{ inputs.version }}
 
       - name: Verify CLI is on PATH
-        run: manticore --version
+        run: manticore version
 
       - name: Run scan via CLI
         working-directory: testdata
-        run: manticore scan --file package.json --fail-on 100 --format json
+        run: manticore scan --file package.json --fail-on 100 --format json --api-url=https://n9kxutlgbg.execute-api.eu-north-1.amazonaws.com
 
   pr-comment:
     name: scan action -> PR comment
@@ -98,3 +100,4 @@ jobs:
           file: package.json
           fail-on: 100
           vcs-comment: true
+          api-url: https://n9kxutlgbg.execute-api.eu-north-1.amazonaws.com
